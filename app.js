@@ -30,54 +30,128 @@ io.on("connection",function(socket){
 
 	socket.on("disconnect",function(){
 		
-		if(typeof socket.username === 'undefined'){
-			return false;
-		}
+		
 
 		console.log(socket.id + " disconnected");
 		//use array
+		if(socket.play){
+			socket.broadcast.to(socket.roomId).emit('You-win');
+		}
+		//set playfirst=true for other socket
 
-		io.emit('Server-send-user-offline',socket.id);
+		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
 
+		if(typeof playerinRoom !== 'undefined'){
+
+			for(var id in playerinRoom.sockets){
+				var s = io.sockets.connected[id];
+
+				s.playfirst = true;
+			}
+
+			socket.broadcast.to(socket.roomId).emit('Opponent-leave-room');
+		}
 		
 	});
 
 	socket.on('User-join',function(){
 
-		var list_sockets=io.sockets.adapter.rooms;
-		// console.log(list_sockets.length);
-		var count=0;
-		for(var s in list_sockets){
-			count++;
-			if(count > 1){
-				break;
-			}
-		}
+		socket.join('Caro');
+		socket.roomId='Caro';
 
-		if(count === 1){
-			socket.emit('Set-turn',{signal:true,wait:true});
+		socket.ready=false;
+		socket.play=false;
+
+
+		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
+
+		if(playerinRoom.length === 3){
+
+			socket.leave('Caro');
+
+			socket.emit('Room-is-full');
 		}
 		else{
 
-			socket.broadcast.emit('Start-first');
+			if(playerinRoom.length === 1){
 
-			socket.emit('Set-turn',{signal:false,wait:false});	
-		}		
+				socket.playfirst=true;
 
+				socket.emit('Set-turn',{signal:true,wait:true,username:'player1'});
+			}
+			else{
+
+				socket.playfirst=false;
+
+				socket.emit('Set-turn',{signal:false,wait:false, username:'player2', opponent: 'player1'});
+
+				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:'player2'});
+
+				socket.broadcast.to(socket.roomId).emit('Start-first');
+
+				io.to(socket.roomId).emit('Game-ready');
+
+			}		
+		}
 		// socket.point=10;
 	});
 
+	socket.on('User-ready',function(){
+
+		if(socket.play===true) return;
+
+		socket.ready=true;
+		
+		socket.broadcast.to(socket.roomId).emit('Opponent-ready');
+
+		//if both ready
+		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
+
+		for(var id in playerinRoom.sockets){
+
+			if(id!==socket.id){
+				var s = io.sockets.connected[id];
+
+				if(s.ready===true){
+					io.to(socket.roomId).emit('Game-start');
+
+					s.play=true;
+
+					socket.play=true;
+				}
+			}
+		}
+
+		//io.to(socket.roomId).emit('Game-start');
+	})
+
 	socket.on("Client-send-mgs",function(msg){
-		socket.broadcast.emit('Server-send-msg',msg);
+		socket.broadcast.to(socket.roomId).emit('Server-send-msg',msg);
 	});
 
 	socket.on('User-win',function(){
-		socket.broadcast.emit('You-lose');
-		// socket.emit('You-win');
+
+		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
+
+		for(var id in playerinRoom.sockets){
+
+			var s = io.sockets.connected[id];
+			s.play=false;
+		}
+
+		socket.playfirst=true;
+
+		socket.broadcast.to(socket.roomId).emit('You-lose');
+
+		io.to(socket.roomId).emit('Game-end');
 	});
 
 	socket.on('Change-turn',function(data){
-		socket.broadcast.emit('Your-turn',data);
+		socket.broadcast.to(socket.roomId).emit('Your-turn',data);
+	});
+
+	socket.on('No-cell-left',function(){
+		io.to(socket.roomId).emit('Game-draw');
 	})
 
 });

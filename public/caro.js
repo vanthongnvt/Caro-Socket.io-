@@ -32,7 +32,13 @@
 var putable=false; //ko dc danh
 
 var SIZE = [15, 20]; // so o chieu ngang, chieu doc
+
+//SiZE[0]=row
+//SIZE[1]=col
+
+
 var CELL = initArray(); // mang luu diem
+var COUNT=0;
 var TABLE;
 var X = true; // luot danh
 var END = false;
@@ -104,6 +110,7 @@ function addCellEvent() {
 			}
 			//het luot danh
 			putable=false;
+			COUNT++;
 
 			setPoint(this, POINT[X]);
 			this.innerHTML = signal[X];
@@ -118,12 +125,24 @@ function addCellEvent() {
 
 			var w = checkWin(_r, _c);
 
+			socket.emit('Change-turn',{r:_r,c:_c});
+
 			if(w){
 				socket.emit('User-win');
-				alert('Bạn thắng');
+				swal("You win!", {
+					buttons: false,
+					className: "sweet-alert-win",
+					timer: 2000,
+				});
 			}
 			else{
-				socket.emit('Change-turn',{r:_r,c:_c});
+				if(COUNT==15*20){
+					socket.emit('No-cell-left');
+				}
+				else{
+					$('.player-me').toggleClass('rainbow-border');
+					$('.player-opponent').toggleClass('rainbow-border');
+				}
 			}
 
 		}}
@@ -137,6 +156,7 @@ function checkWin(r, c) {
 	var t, v = CELL[r][c], nv, pv;
 	var rhead, rtail;
 	var chead, ctail;
+	var ck_blockheads=false;
 	// cung hang
 	t = 1;
 	chead = c;
@@ -163,12 +183,19 @@ function checkWin(r, c) {
 	}
 	
 	if (t >= 5) {
-		// highlight
-		for (j = chead; j <= ctail; j++) {
-			TABLE[r][j].style.backgroundColor = HCOLOR;
+
+		//check chan 2 dau
+		if(t==5&&(chead-1>=0&&ctail+1<SIZE[1]&&CELL[r][chead-1]===POINT[!X]&&CELL[r][ctail+1]===POINT[!X])){
+			ck_blockheads=true;
 		}
-		END = true;
-		return true;
+		if(t>5||!ck_blockheads){
+			// highlight
+			for (j = chead; j <= ctail; j++) {
+				TABLE[r][j].style.backgroundColor = HCOLOR;
+			}
+			END = true;
+			return true;
+		}
 	}
 	// cung cot
 	t = 1;
@@ -195,12 +222,19 @@ function checkWin(r, c) {
 			break;
 	}
 	if (t >= 5) {
-		// highlight
-		for (i = rhead; i <= rtail; i++) {
-			TABLE[i][c].style.backgroundColor = HCOLOR;
+		
+		//check chan 2 dau
+		if(t==5&&(rhead-1>=0&&rtail+1<SIZE[0]&&CELL[rhead-1][c]===POINT[!X]&&CELL[rtail+1][c]===POINT[!X])){
+			ck_blockheads=true;
 		}
-		END = true;
-		return true;
+		if(t>5||!ck_blockheads){
+			// highlight
+			for (i = rhead; i <= rtail; i++) {
+				TABLE[i][c].style.backgroundColor = HCOLOR;
+			}
+			END = true;
+			return true;
+		}
 	}
 	// cheo /
 	chead = c;
@@ -233,11 +267,18 @@ function checkWin(r, c) {
 			break;
 	}
 	if (t >= 5) {
-		END = true;
-		for (j = chead; j <= ctail; j++) {
-			TABLE[rhead--][j].style.backgroundColor = HCOLOR;
+		
+		//check chan 2 dau
+		if(t==5&&(rhead+1<SIZE[0]&&chead-1>=0&&rtail-1>=0&&ctail+1<SIZE[1]&&CELL[rhead+1][chead-1]===POINT[!X]&&CELL[rtail-1][ctail+1]===POINT[!X])){
+			ck_blockheads=true;
 		}
-		return true;
+		if(t>5||!ck_blockheads){
+			END = true;
+			for (j = chead; j <= ctail; j++) {
+				TABLE[rhead--][j].style.backgroundColor = HCOLOR;
+			}
+			return true;
+		}
 	}
 	// cheo \
 	chead = c;
@@ -270,11 +311,18 @@ function checkWin(r, c) {
 			break;
 	}
 	if (t >= 5) {
-		END = true;
-		for (j = chead; j <= ctail; j++) {
-			TABLE[rhead++][j].style.backgroundColor = HCOLOR;
+
+		//check chan 2 dau
+		if(t==5&&(rhead-1>=0&&chead-1>=0&&rtail+1<SIZE[0]&&ctail+1<SIZE[1]&&CELL[rhead-1][chead-1]===POINT[!X]&&CELL[rtail+1][ctail+1]===POINT[!X])){
+			ck_blockheads=true;
 		}
-		return true;
+		if(t>5||!ck_blockheads){
+			END = true;
+			for (j = chead; j <= ctail; j++) {
+				TABLE[rhead++][j].style.backgroundColor = HCOLOR;
+			}
+			return true;
+		}
 	}	
 }
 
@@ -294,43 +342,104 @@ function getAttributes(cell) {
 }
 
 
-// thong bao tuong ung sau su kien click
-function warn(s) {
-	document.getElementById("msg").innerHTML = s;
+function generateReadyButton(el){
+	el.append('<button class="player-ready-btn">Ready...</button>');
+}
+
+function countDown(){
+	$('#ms_timer').countdowntimer({
+		borderColor: "#3198cb",
+		backgroundColor:"#3a656b",
+		seconds : 15,
+		size : "md",
+		displayFormat: 'S',
+		timeUp : timeisUp
+	});
+}
+
+function timeisUp(){
+	if(putable){
+		putable=false;
+		socket.emit('Change-turn',false);
+	}
+	$('.player-me').toggleClass('rainbow-border');
+	$('.player-opponent').toggleClass('rainbow-border');
 }
 
 $(document).ready(function(){
 	drawBoard();
 	addCellEvent();
-	$(function(){
-		$('#ms_timer').countdowntimer({
-					// minutes :10,
-					borderColor: "#d23b0e",
-					backgroundColor:"#6fe2eb",
-					seconds : 15,
-					size : "md",
-					displayFormat: 'S',
-					timeUp : timeisUp
-				});
-		function timeisUp(){
-			putable=false;
-			socket.emit('Change-turn',false);
-		}
-	});
 
 	socket.emit('User-join');
 
 	socket.on('Set-turn',function(data){
 		X=data.signal;
+
+		$('.player-me .user-username').html(data.username);
+
+		if(typeof data.opponent !== 'undefined'){
+			$('.player-opponent .user-username').html(data.opponent);
+		}
 		if(data.wait){
 			//waiting opponent
 		}
 	});
 
+
+	//for first player
+	socket.on('Opponent-join',function(data){
+
+		$('.player-opponent .user-username').html(data.opponent);
+
+	});
+
+
+	//for first player
 	socket.on('Start-first',function(data){
 		putable=true;
 	});
 
+
+	socket.on('Game-ready',function(){
+		generateReadyButton($('.user'));
+
+	});
+
+
+	$(document).on('click','.player-me .player-ready-btn',function(){
+		socket.emit('User-ready');
+		$(this).siblings('.successAnimation').show();
+		$(this).remove();
+	});
+
+	socket.on('Opponent-ready',function(){
+		$('.player-opponent .player-ready-btn').remove();
+		$('.player-opponent .successAnimation').show();
+	})
+
+	//for both players
+	socket.on('Game-start',function(data){
+
+		$('.successAnimation').hide();
+
+		$('.player-me').append($(signal[X]).addClass('player-signal'));
+
+		$('.player-opponent').append($(signal[!X]).addClass('player-signal'));
+
+
+		if(putable){
+			$('.player-me').toggleClass('rainbow-border');
+		}
+		else{
+			$('.player-opponent').toggleClass('rainbow-border');
+		}
+
+
+		//start game
+
+		countDown();		
+
+	});
 
 
 	socket.on('Server-send-msg',function(msg){
@@ -340,15 +449,86 @@ $(document).ready(function(){
 
 
 	socket.on('You-lose',function(){
-		alert('Bạn đã thua');
+		putable=false;
+		swal("You lose!", {
+			buttons: false,
+			className: "sweet-alert-lose",
+			timer: 2000,
+		});
 	});
 
 	socket.on('Your-turn',function(data){
+
+		$("#ms_timer").countdowntimer("destroy");
+
 		putable=true;
 		if(data!==false){
-			$('td[cell="' + data.r + ',' + data.c + '"]').html(signal[!X]);
+			CELL[data.r][data.c]=POINT[!X];
+			var cell=$('td[cell="' + data.r + ',' + data.c + '"]');
+			cell.html(signal[!X]);
+			cell.attr('point',POINT[!X]);
+			COUNT++;
 		}
+		$('.player-me').toggleClass('rainbow-border');
+		$('.player-opponent').toggleClass('rainbow-border');
 	});
+
+
+	socket.on('You-win',function(){
+		swal("You win!", {
+			buttons: false,
+			className: "sweet-alert-win",
+			timer: 2000,
+		});
+	});
+
+
+	socket.on('Game-draw',function(){
+		
+		swal("Hòaa!!!", {
+			buttons: false,
+			className: "sweet-alert-win",
+			timer: 2000,
+		});
+
+		putable=false;
+		$('.player-me').removeClass('rainbow-border');
+		$('.player-opponent').removeClass('rainbow-border');
+
+	});
+
+
+	socket.on('Game-end',function(){
+		putable=false;
+		$('.player-me').removeClass('rainbow-border');
+		$('.player-opponent').removeClass('rainbow-border');
+	});
+
+
+	socket.on('Opponent-leave-room',function(){
+		putable = false;
+
+		swal({
+			title: "Đối thủ đã thoát phòng chơi",
+			icon: "warning",
+			buttons: ['Ở lại','Rời phòng'],
+			dangerMode: false,
+		})
+		.then((leaveRoom) => {
+			if (leaveRoom) {
+
+			}
+		});
+		$('.player-me').removeClass('rainbow-border');
+		$('.player-opponent').removeClass('rainbow-border');
+
+		$('.player-opponent .user-username').html('');
+		$('.player-opponent .avatar').attr('src','');
+		$('.player-opponent .user-point').html('');
+		$('.player-signal').remove();
+	});
+
+
 
 
 	$('button[name="submit-msg"]').click(function(){

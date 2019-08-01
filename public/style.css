@@ -2,6 +2,31 @@
 	margin: 0;
 	padding: 0;
 }
+body{
+	background-image: url("https://st.quantrimang.com/photos/image/2018/03/06/danh-co-caro-640.jpg");
+	background-repeat: no-repeat;
+	background-size: cover;
+}
+.box-title{
+	width: 50%;
+	height: 100px;
+	background: #d0f5ff;
+	border-radius: 5px;
+	margin: 20px auto;
+	position: relative;
+	border: 2px solid #3198ca;
+}
+.box-title h1{
+	color: #328014;
+	display: inline-block;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%,-50%);
+	padding: 10px 20px;
+	border-radius: 5px;
+	border: 2px solid;
+}
 .cell {
 	width:30px;
 	height:30px;
@@ -13,21 +38,29 @@
 	flex-wrap: nowrap;
 }
 .table{
-	width: 60%;
+	width: 50%;
+}
+.table table{
+	border: 2px solid #3198ca;
+	margin: 0 auto;
 }
 
 .users{
-	width: 20%;
+	width: 25%;
 	padding: 20px 50px;
+	box-sizing: border-box;
 }
 .user{
 	padding: 10px;
 	margin: 10px;
 	box-sizing: border-box;
 	text-align: center;
-	border:2px solid #294628;
+	border: 2px solid #3198cb;
+	background: #e6fdff;
+	border-radius: 10px;
+	position: relative;
 }
-.user img{
+.user img.user-avatar{
 	width: 100px;
 	height: 100px;
 }
@@ -36,9 +69,44 @@
 	font-weight: bold;
 	color: #38820c;
 }
+.player-signal{
+	position: absolute;
+	top: 6px;
+	left: 6px;
+	z-index: 2;
+}
+.player-ready-btn{
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%,-50%);
+	padding: 15px 15px;
+	font-size: 20px;
+	background: #8cffa791;
+	color: #087d08;
+	font-weight: bold;
+	border-radius: 5px;
+	border: none;
+	box-shadow: 0 0 30px -1px #1bd832 inset;
+	transition: all 0.5s;
+}
+.player-me .player-ready-btn{
+	cursor: pointer;
+}
+.player-me .player-ready-btn:hover{
+	box-shadow: 0 0 30px -1px #088a18 inset;
+}
+
+.player-opponent .player-ready-btn{
+	background: #eae9e9;
+	box-shadow: 0 0 30px -1px #8e9898 inset;
+	color: #9e9393;
+}
+
 .chat{
 	width: 25%;
-	margin: 10px 20px;
+	padding: 10px 20px;
+	box-sizing: border-box;
 }
 #msg {
 	color:red;
@@ -62,12 +130,12 @@
 .chat-box{
 	background: #70e2ea;
 	border-radius: 5px;
-	border:1px solid #70d2af;
+	border: 2px solid #3198ca;
 	overflow:hidden;
 }
 .list-message{
 	height: 400px;
-	margin: 10px;
+	padding: 10px;
 	box-sizing: border-box;
 	overflow-y: auto;
 	position: relative;
@@ -148,4 +216,103 @@ input:focus, button:focus{
 	height: calc(100% - 12px);
 	background: white;
 	border-radius: 5px;
+}
+
+.sweet-alert-lose, .sweet-alert-win{
+	vertical-align: top;
+	background: #51fbffe0;
+	height: 100px;
+}
+.sweet-alert-lose .swal-title, .sweet-alert-win .swal-title{
+	font-size: 35px;
+}
+.sweet-alert-win .swal-title{
+	color: #ff5600;
+}
+
+
+
+@keyframes scaleAnimation {
+	0% {
+		opacity: 0;
+		transform: scale(1.5);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes drawCircle {
+	0% {
+		stroke-dashoffset: $circle-length;
+	}
+	100% {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes drawCheck {
+	0% {
+		stroke-dashoffset: $check-length;
+	}
+	100% {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes fadeOut {
+	0% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes fadeIn {
+	0% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+
+#successAnimationCircle {
+	stroke-dasharray: $circle-length $circle-length;
+	stroke: #FFF;
+}
+
+#successAnimationCheck {
+	stroke-dasharray: $check-length $check-length;
+	stroke: #FFF;
+}
+
+#successAnimationResult {
+	fill: #5dce5a;
+	opacity: 0;
+}
+
+.successAnimation{
+	display: none;
+	position: absolute;
+    animation: 0.5s ease-out 0s 1 both scaleAnimation;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+}
+
+.successAnimation #successAnimationCircle {
+	animation: 0.3s cubic-bezier(0.77, 0, 0.175, 1) 0s 1 both drawCircle,
+	0.3s linear 0.5s 1 both fadeOut;
+}
+
+.successAnimation #successAnimationCheck {
+	animation: 0.3s cubic-bezier(0.77, 0, 0.175, 1) 0s 1 both drawCheck,
+	0.1s linear 0.5s 1 both fadeOut;
+}
+
+.successAnimation #successAnimationResult {
+	animation: 0.1s linear 0.3s both fadeIn;
 }

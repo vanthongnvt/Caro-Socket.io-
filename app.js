@@ -15,7 +15,7 @@ var server=require("http").createServer(app);
 
 var io = require('socket.io')(server);
 
-var fs=require('fs');
+// var fs=require('fs');
 
 server.listen(3000);
 
@@ -32,11 +32,12 @@ io.on("connection",function(socket){
 		
 		
 
-		console.log(socket.id + " disconnected");
-		//use array
+		console.log(socket.id + " disconnected, isplay:" + socket.play);
+
 		if(socket.play){
 			socket.broadcast.to(socket.roomId).emit('You-win');
 		}
+
 		//set playfirst=true for other socket
 
 		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
@@ -47,6 +48,8 @@ io.on("connection",function(socket){
 				var s = io.sockets.connected[id];
 
 				s.playfirst = true;
+				s.ready=false;
+				s.play=false;
 			}
 
 			socket.broadcast.to(socket.roomId).emit('Opponent-leave-room');
@@ -54,7 +57,7 @@ io.on("connection",function(socket){
 		
 	});
 
-	socket.on('User-join',function(){
+	socket.on('User-join-room',function(){
 
 		socket.join('Caro');
 		socket.roomId='Caro';
@@ -77,20 +80,19 @@ io.on("connection",function(socket){
 
 				socket.playfirst=true;
 
-				socket.emit('Set-turn',{signal:true,wait:true,username:'player1'});
+				socket.emit('Init-player',{wait:true,username:'player1'});
 			}
 			else{
 
 				socket.playfirst=false;
 
-				socket.emit('Set-turn',{signal:false,wait:false, username:'player2', opponent: 'player1'});
+				socket.emit('Init-player',{wait:false, username:'player2', opponent: 'player1'});
 
 				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:'player2'});
 
-				socket.broadcast.to(socket.roomId).emit('Start-first');
-
 				io.to(socket.roomId).emit('Game-ready');
 
+				
 			}		
 		}
 		// socket.point=10;
@@ -113,7 +115,16 @@ io.on("connection",function(socket){
 				var s = io.sockets.connected[id];
 
 				if(s.ready===true){
-					io.to(socket.roomId).emit('Game-start');
+					if(socket.playfirst===true){
+						socket.emit('Game-start',true);
+						s.emit('Game-start',false);
+					}
+					else{
+						socket.emit('Game-start',false);
+						s.emit('Game-start',true);
+					}
+
+					// io.to(socket.roomId).emit('Game-start');
 
 					s.play=true;
 
@@ -129,7 +140,7 @@ io.on("connection",function(socket){
 		socket.broadcast.to(socket.roomId).emit('Server-send-msg',msg);
 	});
 
-	socket.on('User-win',function(){
+	socket.on('User-win',function(data){
 
 		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
 
@@ -137,13 +148,16 @@ io.on("connection",function(socket){
 
 			var s = io.sockets.connected[id];
 			s.play=false;
+			s.ready=false;
+			s.playfirst=false;
 		}
 
 		socket.playfirst=true;
 
-		socket.broadcast.to(socket.roomId).emit('You-lose');
 
-		io.to(socket.roomId).emit('Game-end');
+		socket.broadcast.to(socket.roomId).emit('You-lose',data);
+
+		io.to(socket.roomId).emit('Game-end',true);
 	});
 
 	socket.on('Change-turn',function(data){
@@ -151,7 +165,18 @@ io.on("connection",function(socket){
 	});
 
 	socket.on('No-cell-left',function(){
-		io.to(socket.roomId).emit('Game-draw');
+
+		//false is draw
+		io.to(socket.roomId).emit('Game-end',false);
+
+		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
+
+		for(var id in playerinRoom.sockets){
+
+			var s = io.sockets.connected[id];
+			s.play=false;
+			s.ready=false;
+		}
 	})
 
 });

@@ -5,10 +5,9 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 	<link rel="stylesheet" type="text/css" href="style.css">
-	<link rel="stylesheet" type="text/css" href="jquery.countdownTimer.css">
-	<!-- <link rel="stylesheet" type="text/css" href="sweetalert2/dist/sweetalert2.min.css"> -->
+
 	<script src="jquery.js"></script> 
-	<script src="jquery.countdownTimer.js"></script>
+
 	<script src="socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -29,8 +28,11 @@
 					<polyline id="successAnimationCheck" stroke="#979797" stroke-width="2" points="23 34 34 43 47 27" fill="transparent"/>
 				</svg>
 			</div>
-			<div id="countdowntimer">
-				<div id="ms_timer"></div>
+			<div class="countdowntimer">
+				<div class="countdowntimer-circle">
+					<div id="countdown-sec">0</div>
+				</div>
+				<!-- <div id="ms_timer"></div> -->
 			</div>
 			<div class="user player-opponent">
 				<p class="user-username"></p>
@@ -42,9 +44,16 @@
 					<polyline id="successAnimationCheck" stroke="#979797" stroke-width="2" points="23 34 34 43 47 27" fill="transparent"/>
 				</svg>
 			</div>
-		</div> 
-		<div class="table">
+		</div>
+		<div class="play-area">
+			<div class="option">
+				<div class="roomId"><p>Id Phòng: <input type="text" name="roomId" disabled="disabled" value="Caro"></p></div>
+				<div class="request-draw"><button disabled="disabled">Cầu hòa</button></div>
+				<div class="request-lose"><button disabled="disabled">Xin thua</button></div>
+			</div>
+			<div class="table">
 
+			</div>
 		</div>
 		<div class="chat">
 			<div class="chat-box">
@@ -52,7 +61,7 @@
 				</div>
 				<div class="list-typing-noti"></div>
 				<div class="input-field">
-					<input type="text" name="message" placeholder="Input...." autocomplete="off">
+					<input type="text" name="message" placeholder="Input...." autocomplete="off" disabled="disabled">
 					<button name="submit-msg" type="button"><i class="fa fa-send"></i></button>
 				</div>
 			</div>

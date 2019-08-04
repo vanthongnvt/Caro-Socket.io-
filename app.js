@@ -237,7 +237,7 @@ app.get('/auth/fb',passport.authenticate('facebook',{
 passport.use('facebook',new passportFB({
 	clientID:process.env.FACEBOOK_CLIENT_ID,
 	clientSecret:process.env.FACEBOOK_CLIENT_SECRET,
-	callbackURL: process.env.APP_URL + "/auth/fb",
+	callbackURL: process.env.APP_URL + ':' + process.env.PORT + "/auth/fb",
 	profileFields:['email','displayName']
 },function(accessToken, refreshToken, profile, done){
 	var profile=profile._json;

@@ -1,12 +1,33 @@
 var express = require('express');
 
+var passport= require('passport');
+
+var passportFB =require('passport-facebook').Strategy;
+
+var session = require('express-session');
+
+require('dotenv').config();
+
 var app = express();
 
-// var session = require('express-session');
+var mongoose=require('mongoose');
+
+// mongoose.connect(process.env.DB_URL, function (err) {
+
+// })
+
 
 app.use(express.static("public"));
 app.use(express.json());
-// app.use(session());
+
+app.use(session({
+	secret:'ldisfs',
+	resave: true,
+	saveUninitialized: true
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.set("view engine","ejs");
 app.set("views","./views");
@@ -17,26 +38,34 @@ var io = require('socket.io')(server);
 
 // var fs=require('fs');
 
-server.listen(3000);
+server.listen(process.env.APP_PORT);
 
 // app.listen(3000);
 
-
+function midAuth(req, res, next) {
+	next();
+	// if(req.isAuthenticated()){
+	// 	next();
+	// }
+	// else{
+	// 	res.redirect('/login');
+	// }
+}
 
 //listen connection
 io.on("connection",function(socket){
 
 	console.log(socket.id + " connected");
 
-	socket.on("disconnect",function(){
-		
-		
+		socket.on("disconnect",function(){
 
-		console.log(socket.id + " disconnected, isplay:" + socket.play);
 
-		if(socket.play){
-			socket.broadcast.to(socket.roomId).emit('You-win');
-		}
+
+			console.log(socket.id + " disconnected, isplay:" + socket.play);
+
+			if(socket.play){
+				socket.broadcast.to(socket.roomId).emit('You-win');
+			}
 
 		//set playfirst=true for other socket
 
@@ -72,29 +101,29 @@ io.on("connection",function(socket){
 
 			socket.leave('Caro');
 
-			socket.emit('Room-is-full');
-		}
-		else{
-
-			if(playerinRoom.length === 1){
-
-				socket.playfirst=true;
-
-				socket.emit('Init-player',{wait:true,username:'player1'});
+				socket.emit('Room-is-full');
 			}
 			else{
 
-				socket.playfirst=false;
+				if(playerinRoom.length === 1){
 
-				socket.emit('Init-player',{wait:false, username:'player2', opponent: 'player1'});
+					socket.playfirst=true;
 
-				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:'player2'});
+					socket.emit('Init-player',{wait:true,username:'player1'});
+				}
+				else{
 
-				io.to(socket.roomId).emit('Game-ready');
+					socket.playfirst=false;
 
-				
-			}		
-		}
+					socket.emit('Init-player',{wait:false, username:'player2', opponent: 'player1'});
+
+					socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:'player2'});
+
+					io.to(socket.roomId).emit('Game-ready');
+
+
+				}		
+			}
 		// socket.point=10;
 	});
 
@@ -103,7 +132,7 @@ io.on("connection",function(socket){
 		if(socket.play===true) return;
 
 		socket.ready=true;
-		
+
 		socket.broadcast.to(socket.roomId).emit('Opponent-ready');
 
 		//if both ready
@@ -181,12 +210,63 @@ io.on("connection",function(socket){
 
 });
 
-app.get('/',function(req,res){
-	res.render("play");
+app.get('/',midAuth,function(req,res){
+
+	res.redirect('/login');
+});
+
+app.get('/play',midAuth,function(req,res){
+	res.render("play",{
+		user:req.user,
+	});
 
 });
 
-app.get('/create-user',function(req,res){
-	res.render("createuser");
-
+app.get('/login',function(req,res){
+	res.render('login');
 });
+
+app.get('/fb-login',passport.authenticate('facebook',{scope:['email']}));
+
+app.get('/auth/fb',passport.authenticate('facebook',{
+	failureRedirect:'/login',
+	successRedirect:'/'
+}));
+
+
+passport.use('facebook',new passportFB({
+	clientID:process.env.FACEBOOK_CLIENT_ID,
+	clientSecret:process.env.FACEBOOK_CLIENT_SECRET,
+	callbackURL: process.env.APP_URL + "/auth/fb",
+	profileFields:['email','displayName']
+},function(accessToken, refreshToken, profile, done){
+	var profile=profile._json;
+
+	db.findOne({id:profile.id},function(err,user){
+		if(err) return done(err);
+		if(user) {
+			done(null,user);
+		}
+
+		var newUser= new db({
+			id:profile.id,
+			name:profile.name,
+			email:profile.email,
+		});
+
+		newUser.save(function(err){
+			return done(null,newUser);
+		});
+	})
+}));
+
+passport.serializeUser(function(user,done){
+	done(null,user.id);
+});
+
+passport.deserializeUser(function(id,done){
+	//get user
+	db.findOne({id:id},function(err,user){
+		done(null,user);
+	})
+})

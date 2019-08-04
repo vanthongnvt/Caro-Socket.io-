@@ -7,7 +7,7 @@ body{
 	background-repeat: no-repeat;
 	background-size: cover;
 	width: 1240px;
-    margin: 0 auto;
+	margin: 0 auto;
 }
 .header{
 	position: relative;
@@ -190,7 +190,7 @@ body{
 	height: 70px;
 	margin: 0 auto;
 	position: relative;
-    border: 4px solid #3298cb;
+	border: 4px solid #3298cb;
 }
 #countdown-sec{
 	position: absolute;
@@ -482,4 +482,44 @@ input:focus, button:focus{
 	100% {
 		transform: translate(19px, 0);
 	}
+}
+
+
+
+
+
+
+
+
+
+.container{
+	margin: 0 auto;
+	text-align: center;
+}
+.fb-login a{
+	display: inline-block;
+	border: 1px solid #6197e8;
+	border-radius: 5px;
+}
+.fb-login button.fb-login-btn-right{
+	font-size: 14px;
+	background: #4267b2;
+	color: #ffffff;
+	border-radius:0 5px 5px 0;
+	font-family: Roboto,sans-serif;
+	width: 260px;
+	height: 50px;
+	cursor: pointer;
+	border: none;
+}
+.fb-login button.fb-login-btn-left{
+	font-size: 14px;
+	background: #ffffff;
+	color: #4267b2;
+	border-radius:5px 0 0 5px;
+	font-family: Roboto,sans-serif;
+	width: 50px;
+	height: 50px;
+	cursor: pointer;
+	border: none;	
 }

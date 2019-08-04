@@ -13,7 +13,7 @@
 	var app_url=$('meta[name="app-url"]').attr('content');
 	var app_port=$('meta[name="app-port"]').attr('content');
 
-	var socket=io(app_url);
+	var socket=io(app_url+':'+app_port);
 
 
 var putable=false; //ko dc danh
@@ -31,8 +31,8 @@ var END = false;
 var COUNTDOWN;
 
 var signal = new Array();
-signal[X] = "<img src='http://l.yimg.com/us.yimg.com/i/mesg/emoticons7/19.gif'>";
-signal[!X] = "<img src='http://l.yimg.com/us.yimg.com/i/mesg/emoticons7/31.gif'>";
+signal[X] = "<img src='19.gif'>";
+signal[!X] = "<img src='31.gif'>";
 
 
 var POINT = new Array();

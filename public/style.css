@@ -8,6 +8,7 @@ body{
 	background-size: cover;
 	width: 1240px;
 	margin: 0 auto;
+	font-family: arial;
 }
 .header{
 	position: relative;
@@ -522,4 +523,112 @@ input:focus, button:focus{
 	height: 50px;
 	cursor: pointer;
 	border: none;	
+}
+.create-join-room{
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: space-around;
+	width: 50%;
+	margin: 0 auto;
+}
+.create-join-room > div{
+	width: 40%;
+	text-align: center;
+	padding: 20px 10px;
+	border-radius: 5px;
+}
+.create-room{
+	background: #64e464;
+	border: 2px solid #94ad96;
+	box-shadow: 0 0 50px -1px #47823b inset;
+}
+.join-room{
+	background: #72d6cf;
+	border: 2px solid #94a9ad;
+	box-shadow: 0 0 50px -1px #3b7482 inset;	
+}
+.create-join-room input{
+	padding: 5px;
+	width: 100px;
+	border-radius: 3px;
+	border: 1px solid #3198ca;
+	line-height: 20px;
+}
+.create-join-room button{
+	padding: 5px;
+	color: #ffffff;
+	border-radius: 3px;
+	font-size: 14px;
+	cursor: pointer;
+	line-height: 20px;
+}
+.create-room button{
+	background: #3dab3d;
+	border: 1px solid #48a03f;
+}
+.join-room button{
+	background: #5599bb;
+	border: 1px solid #3d89af;
+}
+.users-rank{
+	background: #b4e3efc9;
+	margin-top: 20px;
+	position: relative;
+}
+.users-rank h1{
+	color: #295a0c;
+	margin: 10px auto;
+	display: inline-block;
+	padding-bottom: 5px;
+	border-bottom: 4px solid #209a06;
+}
+.users-rank .list{
+	width: 50%;
+	margin: 20px auto;
+	background: #f1f1f17a;
+	height: 400px;
+	box-sizing: border-box;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-around;
+}
+.rank-item{
+	width: 45%;
+	display: flex;
+	flex-wrap: nowrap;
+	height: 60px;
+	margin: 5px;
+	background: #67b2cc;
+	border-radius: 5px;
+	border: 1px solid #50889e;
+	overflow: hidden;
+}
+.auth-rank{
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 300px;
+}
+.rank-item p{
+	line-height: 60px;
+}
+.rank-avatar{
+	width: 60px;
+}
+.rank-avatar img{
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+}
+.rank-name{
+	width: 60%;
+	border-right: 1px solid #3f94bb;
+	color: #ffffff;
+}
+.rank-point{
+	width: 20%;
+	text-align: center;
+	font-weight: bold;
+	color: #024067;
+	background: #7edae0;
 }

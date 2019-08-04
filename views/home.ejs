@@ -8,6 +8,7 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 	<link rel="stylesheet" type="text/css" href="style.css">
 	<script src="jquery.js"></script> 
+	<script src="socket.io/socket.io.js"></script>
 </head>
 <body>
 	<div class="header">
@@ -15,15 +16,46 @@
 			<h1>Caro <img src='http://l.yimg.com/us.yimg.com/i/mesg/emoticons7/19.gif'> <img src='http://l.yimg.com/us.yimg.com/i/mesg/emoticons7/31.gif'></h1>
 		</div>
 	</div>
-	<div class="join-room-fields">
-		
-	</div>
 	<div class="container">
+		<div class="create-join-room">
+			<div class="create-room">
+				<input type="text" name="room_id_create" placeholder="Id phòng" autocomplete="off">
+				<button type="button">Tạo phòng</button>
+			</div>
+			<div class="join-room">
+				<input type="text" name="room_id_join" placeholder="Id phòng" autocomplete="off">
+				<button type="button">Vào phòng</button>
+			</div>
+		</div>
 		<div class="users-rank">
-		
+			<div class="rank-item auth-rank">
+				<div class="rank-avatar"><img src=""></div>
+				<div class="rank-name"><p>Ahiii</p></div>
+				<div class="rank-point"><p>3453</p></div>
+			</div>
+			<div>
+				<h1>Xếp hạng</h1>
+			</div>
+			<div class="list">
+				<div class="rank-item" id="943872" style="order:1">
+					<div class="rank-avatar"><img src=""></div>
+					<div class="rank-name" title="Ahiii"><p>Ahiii</p></div>
+					<div class="rank-point"><p>3453</p></div>
+				</div>
+				<div class="rank-item">
+					<div class="rank-avatar"><img src="avatarloader.gif"></div>
+					<div class="rank-name"><p>Ahiii</p></div>
+					<div class="rank-point"><p>3453</p></div>
+				</div>
+				<div class="rank-item">
+					<div class="rank-avatar"><img src=""></div>
+					<div class="rank-name"><p>Ahiii</p></div>
+					<div class="rank-point"><p>3453</p></div>
+				</div>
+			</div>
 		</div>
 	</div>
-
+	<script src="home.js"></script> 
 	<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 </body>
 </html>

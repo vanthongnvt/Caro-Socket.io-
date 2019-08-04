@@ -1,33 +1,25 @@
 var mongoose = require('mongoose');
 
-var userSchema = mongoose.Schema({
-	id:{
+var matchSchema = mongoose.Schema({
+	winer_id:{
 		type: String,
 		unique: true,
 		required: true
 	},
-	name: {
+	loser_id: {
 		type: String,
 		required: true
 	},
-	email: String,
-
-	avatar: {
-		type: String,
-		required: true
-	},
-
-	point: {
+	bet_point: {
 		type: Number,
 		default: 0
 	},
-	
 	created: { 
 		type: Date,
 		default: Date.now
 	}
 });
 
-var User = mongoose.model('User', userSchema);
+var Match = mongoose.model('Match', matchSchema);
 
-module.exports = User;
+module.exports = Match;

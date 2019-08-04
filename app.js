@@ -6,15 +6,35 @@ var passportFB =require('passport-facebook').Strategy;
 
 var session = require('express-session');
 
+var bodyParser=require('body-parser');
+
+var urlEndcodeParser=bodyParser.urlencoded({extended:true});
+
 require('dotenv').config();
 
 var app = express();
 
 var mongoose=require('mongoose');
 
-// mongoose.connect(process.env.DB_URL, function (err) {
+var db=mongoose.connect(process.env.DB_URL,{ useNewUrlParser: true,useCreateIndex: true }, function (err) {
 
-// })
+});
+
+// const MongoClient = require(‘mongodb’).MongoClient;
+
+// const uri = process.env.DB_URL;
+// const client = new MongoClient(uri, { useNewUrlParser: true });
+// client.connect(err => {
+//   const collection = client.db("test").collection("devices");
+//   perform actions on the collection object
+//   client.close();
+// });
+
+
+var userModel=require('./models/user');
+
+var matchModel=require('./models/match');
+
 
 
 app.use(express.static("public"));
@@ -40,8 +60,6 @@ var io = require('socket.io')(server);
 
 // var fs=require('fs');
 
-// app.listen(3000);
-
 function midAuth(req, res, next) {
 	next();
 	// if(req.isAuthenticated()){
@@ -57,15 +75,15 @@ io.on("connection",function(socket){
 
 	console.log(socket.id + " connected");
 
-		socket.on("disconnect",function(){
+	socket.on("disconnect",function(){
 
 
 
-			console.log(socket.id + " disconnected, isplay:" + socket.play);
+		console.log(socket.id + " disconnected, isplay:" + socket.play);
 
-			if(socket.play){
-				socket.broadcast.to(socket.roomId).emit('You-win');
-			}
+		if(socket.play){
+			socket.broadcast.to(socket.roomId).emit('You-win');
+		}
 
 		//set playfirst=true for other socket
 
@@ -86,6 +104,38 @@ io.on("connection",function(socket){
 		
 	});
 
+
+	socket.on('Create-room',function(room_id){
+
+		var room =io.sockets.adapter.rooms[room_id];
+
+		if(typeof room !=='undefined'){
+			socket.emit('Create-room-fail');
+		}
+		else{
+			socket.emit('Create-room-success',data);
+		}
+
+	});
+
+	socket.on('Join-room',function(room_id){
+
+		var playerinRoom =io.sockets.adapter.rooms[room_id];
+
+		if(typeof playerinRoom !=='undefined'){
+
+			if(playerinRoom.length===2){
+				socket.emit('Room-is-full');
+			}
+			else{
+				socket.emit('Join-room-success');
+			}
+		}
+		else{
+			socket.emit('Room-not-exist');
+		}
+	})
+
 	socket.on('User-join-room',function(){
 
 		socket.join('Caro');
@@ -101,29 +151,29 @@ io.on("connection",function(socket){
 
 			socket.leave('Caro');
 
-				socket.emit('Room-is-full');
+			socket.emit('Room-is-full');
+		}
+		else{
+
+			if(playerinRoom.length === 1){
+
+				socket.playfirst=true;
+
+				socket.emit('Init-player',{wait:true,username:'player1'});
 			}
 			else{
 
-				if(playerinRoom.length === 1){
+				socket.playfirst=false;
 
-					socket.playfirst=true;
+				socket.emit('Init-player',{wait:false, username:'player2', opponent: 'player1'});
 
-					socket.emit('Init-player',{wait:true,username:'player1'});
-				}
-				else{
+				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:'player2'});
 
-					socket.playfirst=false;
-
-					socket.emit('Init-player',{wait:false, username:'player2', opponent: 'player1'});
-
-					socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:'player2'});
-
-					io.to(socket.roomId).emit('Game-ready');
+				io.to(socket.roomId).emit('Game-ready');
 
 
-				}		
-			}
+			}		
+		}
 		// socket.point=10;
 	});
 
@@ -212,7 +262,9 @@ io.on("connection",function(socket){
 
 app.get('/',midAuth,function(req,res){
 
-	res.redirect('/login');
+	// res.redirect('/login');
+
+	res.render('home');
 });
 
 app.get('/play',midAuth,function(req,res){
@@ -237,21 +289,23 @@ app.get('/auth/fb',passport.authenticate('facebook',{
 passport.use('facebook',new passportFB({
 	clientID:process.env.FACEBOOK_CLIENT_ID,
 	clientSecret:process.env.FACEBOOK_CLIENT_SECRET,
-	callbackURL: process.env.APP_URL + ':' + process.env.PORT + "/auth/fb",
-	profileFields:['email','displayName']
+	callbackURL: process.env.APP_URL + "/auth/fb",
+	profileFields:['email','displayName','avatar']
 },function(accessToken, refreshToken, profile, done){
-	var profile=profile._json;
+	var get_profile=profile._json;
 
-	db.findOne({id:profile.id},function(err,user){
+	userModel.findOne({id:get_profile.id},function(err,user){
 		if(err) return done(err);
 		if(user) {
 			done(null,user);
 		}
 
-		var newUser= new db({
-			id:profile.id,
-			name:profile.name,
-			email:profile.email,
+		var newUser= new userModel({
+			id:get_profile.id,
+			name:get_profile.name,
+			email:get_profile.email,
+			avatar:get_profile.avatar,
+			point:500
 		});
 
 		newUser.save(function(err){
@@ -266,7 +320,7 @@ passport.serializeUser(function(user,done){
 
 passport.deserializeUser(function(id,done){
 	//get user
-	db.findOne({id:id},function(err,user){
+	userModel.findOne({id:id},function(err,user){
 		done(null,user);
 	})
 })

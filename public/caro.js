@@ -13,7 +13,7 @@
 	var app_url=$('meta[name="app-url"]').attr('content');
 	var app_port=$('meta[name="app-port"]').attr('content');
 
-	var socket=io(app_url+':'+app_port);
+	var socket=io(app_url);
 
 
 var putable=false; //ko dc danh

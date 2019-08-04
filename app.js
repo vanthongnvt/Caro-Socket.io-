@@ -34,11 +34,11 @@ app.set("views","./views");
 
 var server=require("http").createServer(app);
 
+server.listen(process.env.PORT);
+
 var io = require('socket.io')(server);
 
 // var fs=require('fs');
-
-server.listen(process.env.PORT);
 
 // app.listen(3000);
 

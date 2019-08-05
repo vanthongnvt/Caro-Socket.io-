@@ -34,15 +34,24 @@
 		</div>
 		<div class="users-rank">
 			<div class="rank-item auth-rank">
-				<div class="rank-avatar"><img src=""></div>
-				<div class="rank-name"><p>Ahiii</p></div>
-				<div class="rank-point"><p>3453</p></div>
+				<div class="rank-avatar"><img src="<%= user.avatar %>"></div>
+				<div class="rank-name"><p><%= user.name %></p></div>
+				<div class="rank-point"><p><%= user.point %></p></div>
 			</div>
 			<div>
 				<h1>Xếp hạng</h1>
 			</div>
 			<div class="list">
-				<div class="rank-item" id="943872" style="order:1">
+				<% rank_list.forEach(function(user,i){
+					%>
+					<div class="rank-item" id="<%= user.id %>" style="order:<%= i %>">
+						<div class="rank-avatar"><img src="<%= user.avatar %>"></div>
+						<div class="rank-name" title="Ahiii"><p><%= user.name %></p></div>
+						<div class="rank-point"><p><%= user.point %></p></div>
+					</div>
+					<%
+				})%>
+				<div class="rank-item" id="943872">
 					<div class="rank-avatar"><img src=""></div>
 					<div class="rank-name" title="Ahiii"><p>Ahiii</p></div>
 					<div class="rank-point"><p>3453</p></div>

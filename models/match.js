@@ -1,15 +1,17 @@
 var mongoose = require('mongoose');
 
 var matchSchema = mongoose.Schema({
-	winer_id:{
+	player1_id:{
 		type: String,
 		unique: true,
 		required: true
 	},
-	loser_id: {
+	palyer2_id: {
 		type: String,
 		required: true
 	},
+	winer_id: String,
+	
 	bet_point: {
 		type: Number,
 		default: 0

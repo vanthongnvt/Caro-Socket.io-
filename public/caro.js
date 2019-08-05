@@ -419,10 +419,6 @@ $(document).ready(function(){
 
 	socket.on('Init-player',function(data){
 
-		$('.player-me .user-username').html(data.user.name);
-		$('.player-me .user-avatar').attr('src',data.user.avatar);
-		$('.player-me .user-point').html(data.user.point);
-
 		if(typeof data.opponent !== 'undefined'){
 			$('.player-opponent .user-username').html(data.opponent.name);
 			$('.player-me .user-avatar').attr('src',data.opponent.avatar);

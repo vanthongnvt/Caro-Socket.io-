@@ -69,35 +69,44 @@ io.use(function(socket, next){
 	session(socket.request, {}, next);
 });
 
-
-
-app.get('/create-session',function(req,res){
-	req.session.user={
-		id:'2324242',
-		name:'thonos',
-		avatar:'/3224',
-		point:'33535',
-	};
-	res.send('ok');
+app.get('/create-session1',function(req,res){
+	userModel.findOne({id:'1'},function(err,user){
+		req.session.user = user;
+		res.redirect('/');
+	});
 })
 
+app.get('/create-session2',function(req,res){
+	userModel.findOne({id:'2'},function(err,user){
+		req.session.user = user;
+		res.redirect('/');
+	});
+});
+
+
+app.get('/update-win',function(req,res){
+	userModel.findOne({id:req.session.user.id},function(err,user){
+		var result=user.updateWhenWin(500);
+		console.log(result.nModified);
+		res.redirect('/');
+	})
+});
 
 //listen connection
 io.on("connection",function(socket){
 
 
-	// socket.handshake.session.userdata = userdata;
-	// socket.handshake.session.save();
-
-	console.log(socket.request.session.user);
+	// console.log(socket.request.session.user);
 
 	socket.on("disconnect",function(){
 
 
-
+		var end=false;
+		var win_id;
 		// console.log(socket.id + " disconnected, isplay:" + socket.play);
 
 		if(socket.play){
+			end=true;
 			socket.broadcast.to(socket.roomId).emit('You-win');
 		}
 
@@ -109,6 +118,9 @@ io.on("connection",function(socket){
 
 			for(var id in playerinRoom.sockets){
 				var s = io.sockets.connected[id];
+				if(id!==socket.id){
+					win_id=s.request.session.user.id;
+				}
 
 				s.playfirst = true;
 				s.ready=false;
@@ -116,6 +128,16 @@ io.on("connection",function(socket){
 			}
 
 			socket.broadcast.to(socket.roomId).emit('Opponent-leave-room');
+
+			if(end){
+				match = new matchModel({
+					player1_id: win_id,
+					player2_id: socket.request.session.user.id,
+					winer_id: win_id,
+					bet_point: socket.betPoint,
+				});
+				match.save(function(err){});
+			}
 		}
 		
 	});
@@ -178,7 +200,7 @@ io.on("connection",function(socket){
 
 				socket.playfirst=true;
 
-				socket.emit('Init-player',{wait:true,user:socket.request.session.user});
+				socket.emit('Init-player',{wait:true});
 			}
 
 			//second player
@@ -190,7 +212,7 @@ io.on("connection",function(socket){
 
 					if(id!==socket.id){
 						var sfirst = io.sockets.connected[id];
-						socket.emit('Init-player',{wait:false, user:socket.request.session.user, opponent: sfirst.request.session.user,roomInf:{
+						socket.emit('Init-player',{wait:false,opponent: sfirst.request.session.user,roomInf:{
 							id:sfirst.roomId,
 							bet_point:sfirst.betPoint
 						}});
@@ -253,10 +275,12 @@ io.on("connection",function(socket){
 	socket.on('User-win',function(data){
 
 		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
-
+		var id_lose;
 		for(var id in playerinRoom.sockets){
-
 			var s = io.sockets.connected[id];
+			if(id!==socket.id){
+				id_lose=s.request.session.user.id;
+			}
 			s.play=false;
 			s.ready=false;
 			s.playfirst=false;
@@ -268,6 +292,15 @@ io.on("connection",function(socket){
 		socket.broadcast.to(socket.roomId).emit('You-lose',data);
 
 		io.to(socket.roomId).emit('Game-end',true);
+
+		match = new matchModel({
+			player1_id: socket.request.session.user.id,
+			player2_id: id_lose,
+			winer_id: socket.request.session.user.id,
+			bet_point: socket.betPoint,
+		});
+		match.save(function(err){});
+
 	});
 
 	socket.on('Change-turn',function(data){
@@ -280,22 +313,32 @@ io.on("connection",function(socket){
 		io.to(socket.roomId).emit('Game-end',false);
 
 		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
+		var player2;
 
 		for(var id in playerinRoom.sockets){
-
 			var s = io.sockets.connected[id];
+			if(id!==socket.id){
+				player2=s;
+			}
 			s.play=false;
 			s.ready=false;
 		}
+
+		match = new matchModel({
+			player1_id: socket.request.session.user.id,
+			player2_id: player2.request.session.user.id,
+			winer_id: null,
+			bet_point: socket.betPoint,
+		});
+		match.save(function(err){});
 	})
 
 });
 
 app.get('/',midAuth,function(req,res){
-
-	// res.redirect('/login');
-
-	res.render('home');
+	userModel.find({},function(err,users){
+		res.render('home',{user:req.session.user,rank_list:users});
+	})
 });
 
 app.post('/create-room',midAuth,function(req,res){
@@ -340,7 +383,7 @@ app.get('/play',midAuth,function(req,res){
 	res.render("play",{
 		roomId:room[0].id,
 		betPoint:room[0].betPoint,
-		user:req.user,
+		user:req.session.user,
 	});
 
 });

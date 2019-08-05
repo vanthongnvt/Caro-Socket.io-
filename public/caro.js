@@ -13,6 +13,10 @@
 	var app_url=$('meta[name="app-url"]').attr('content');
 	var app_port=$('meta[name="app-port"]').attr('content');
 
+	var roomid=$('meta[name="room-id"]').attr('content');
+
+	var bet_point=$('meta[name="bet-point"]').attr('content');
+
 	var socket=io(app_url+':'+app_port);
 
 
@@ -43,16 +47,16 @@ function initGlobalVariable(){
 	X=false;
 	putable=false;
 	CELL=initArray();
-		COUNT=0;
-		END=false;
+	COUNT=0;
+	END=false;
 
-	}
+}
 
-	function clearBoard(){
-		$('.cell').attr('point',0).html('');
-			$('.mark-win').removeClass('mark-win');
-				$('input[name="message"]').removeAttr('disabled');
-			}
+function clearBoard(){
+	$('.cell').attr('point',0).html('');
+	$('.mark-win').removeClass('mark-win');
+	$('input[name="message"]').removeAttr('disabled');
+}
 
 // ve ban co
 function drawBoard() {
@@ -85,7 +89,7 @@ function addCellEvent() {
 			}
 			var r;
 			r = getAttributes(this);
-	if (r["point"] != 0) { 
+			if (r["point"] != 0) { 
 
 				// o da duoc danh dau
 				return;
@@ -95,13 +99,13 @@ function addCellEvent() {
 			COUNT++;
 
 			setPoint(this, POINT[X]);
-				this.innerHTML = signal[X];
+			this.innerHTML = signal[X];
 
-				var _pos, _r, _c;
-				_pos = new String(r["cell"]);
-				_r = eval(_pos.split(",")[0]);
-				_c = eval(_pos.split(",")[1]);
-				CELL[_r][_c] = POINT[X];
+			var _pos, _r, _c;
+			_pos = new String(r["cell"]);
+			_r = eval(_pos.split(",")[0]);
+			_c = eval(_pos.split(",")[1]);
+			CELL[_r][_c] = POINT[X];
 
 			// log(_r + "," + _c + " = " + CELL[_r][_c]);
 
@@ -110,25 +114,25 @@ function addCellEvent() {
 			socket.emit('Change-turn',{r:_r,c:_c});
 			clearInterval(COUNTDOWN);
 
-		COUNTDOWN=countDown();
+			COUNTDOWN=countDown();
 
-	if(w){
-		socket.emit('User-win',{r:_r,c:_c});
-		resultGameAlert(1);
-	}
-	else{
-		if(COUNT==SIZE[0]*SIZE[1]){
-			socket.emit('No-cell-left');
-		}
-		else{
-			$('.player-me').toggleClass('rainbow-border');
-				$('.player-opponent').toggleClass('rainbow-border');
+			if(w){
+				socket.emit('User-win',{r:_r,c:_c});
+				resultGameAlert(1);
 			}
-		}
+			else{
+				if(COUNT==SIZE[0]*SIZE[1]){
+					socket.emit('No-cell-left');
+				}
+				else{
+					$('.player-me').toggleClass('rainbow-border');
+					$('.player-opponent').toggleClass('rainbow-border');
+				}
+			}
 
-	}}
+		}}
 
-}
+	}
 
 
 // kiem tra sau khi danh o r,c da co ai thang chua
@@ -329,22 +333,22 @@ function getAttributes(cell) {
 function overlay(text){
 
 	$('.overlay').remove();
-		$('.table').append('<div class="overlay"><div class="overlay-text">'+text+'</div></div>');
+	$('.table').append('<div class="overlay"><div class="overlay-text">'+text+'</div></div>');
+}
+
+
+function resultGameAlert(type){
+	var el;
+	if(type===1){
+		el='<div class="mswal-result mswal-alert-win"><div class="mswal-title">Bạn thắng! '+signal[X]+'</div></div>';
 	}
-
-
-	function resultGameAlert(type){
-		var el;
-		if(type===1){
-			el='<div class="mswal-result mswal-alert-win"><div class="mswal-title">Bạn thắng! '+signal[X]+'</div></div>';
-		}
-		else if(type===2){
-			el='<div class="mswal-result mswal-alert-lose"><div class="mswal-title">Bạn thua! '+signal[X]+'</div></div>';
-		}
-		else if(type===0){
-			el='<div class="mswal-result mswal-alert-draw"><div class="mswal-title">Hòaaa!! '+signal[X]+'</div></div>';
-		}
-		$('.header').append(el);
+	else if(type===2){
+		el='<div class="mswal-result mswal-alert-lose"><div class="mswal-title">Bạn thua! '+signal[X]+'</div></div>';
+	}
+	else if(type===0){
+		el='<div class="mswal-result mswal-alert-draw"><div class="mswal-title">Hòaaa!! '+signal[X]+'</div></div>';
+	}
+	$('.header').append(el);
 
 	// $('.mswal-result').animate({top:'50%'},500);
 
@@ -373,48 +377,59 @@ function CountdownTimer(element,setup,callbackFinish){
 
 function countDown(callback=null){
 	$('#countdown-sec').html(15);
-		return CountdownTimer($('#countdown-sec'),{
-			seconds:15,
-		},callback);
+	return CountdownTimer($('#countdown-sec'),{
+		seconds:15,
+	},callback);
 
+}
+
+function stopCountDown(){
+	clearInterval(COUNTDOWN);
+}
+
+function setZeroCountDown(){
+	clearInterval(COUNTDOWN);
+	$('#countdown-sec').html('0');
+}
+
+function timeisUp(){
+
+	COUNTDOWN=countDown();
+
+	if(putable){
+		putable=false;
+		socket.emit('Change-turn',false);
 	}
+	$('.player-me').toggleClass('rainbow-border');
+	$('.player-opponent').toggleClass('rainbow-border');
+}
 
-	function stopCountDown(){
-		clearInterval(COUNTDOWN);
-	}
-
-	function setZeroCountDown(){
-		clearInterval(COUNTDOWN);
-			$('#countdown-sec').html('0');
-		}
-
-		function timeisUp(){
-
-			COUNTDOWN=countDown();
-
-				if(putable){
-					putable=false;
-					socket.emit('Change-turn',false);
-				}
-				$('.player-me').toggleClass('rainbow-border');
-					$('.player-opponent').toggleClass('rainbow-border');
-				}
-
-				$(document).ready(function(){
-					drawBoard();
-					addCellEvent();
+$(document).ready(function(){
+	drawBoard();
+	addCellEvent();
 
 	// resultGameAlert(1);
 
-	socket.emit('User-join-room');
+	socket.emit('User-join-room',{roomid:roomid,bet_point:bet_point});
+
+	socket.on('Room-is-full',function(){
+		alert('Phòng đã đầy!');
+		(window).location.href='/';
+	});
 
 	socket.on('Init-player',function(data){
 
-		$('.player-me .user-username').html(data.username);
+		$('.player-me .user-username').html(data.user.name);
+		$('.player-me .user-avatar').attr('src',data.user.avatar);
+		$('.player-me .user-point').html(data.user.point);
 
 		if(typeof data.opponent !== 'undefined'){
-			$('.player-opponent .user-username').html(data.opponent);
+			$('.player-opponent .user-username').html(data.opponent.name);
+			$('.player-me .user-avatar').attr('src',data.opponent.avatar);
+			$('.player-me .user-point').html(data.opponent.point);
 		}
+
+		//first palayer
 		if(data.wait){
 
 			$('.player-opponent .user-avatar').attr('src','/avatarloader.gif');
@@ -423,7 +438,14 @@ function countDown(callback=null){
 			overlay(text);
 
 		}
+
+		//second player
 		else{
+			bet_point=data.roomInf.bet_point;
+			
+			$('.roomId input[name="roomId"]').val(data.roomInf.id);
+
+			$('.roomId input[name="bet_point"]').val(data.roomInf.bet_point);
 			overlay('<button class="player-ready-btn">Sẵn sàng</button>');
 		}
 	});
@@ -586,7 +608,7 @@ function countDown(callback=null){
 		})
 		.then((leaveRoom) => {
 			if (leaveRoom) {
-
+				(window).location.href='/';
 			}
 			
 		});

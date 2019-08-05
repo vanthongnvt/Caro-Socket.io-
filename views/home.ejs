@@ -13,18 +13,23 @@
 <body>
 	<div class="header">
 		<div class="box-title">
-			<h1>Caro <img src='http://l.yimg.com/us.yimg.com/i/mesg/emoticons7/19.gif'> <img src='http://l.yimg.com/us.yimg.com/i/mesg/emoticons7/31.gif'></h1>
+			<h1>Caro <img src='19.gif'> <img src='31.gif'></h1>
 		</div>
 	</div>
 	<div class="container">
 		<div class="create-join-room">
 			<div class="create-room">
-				<input type="text" name="room_id_create" placeholder="Id phòng" autocomplete="off">
-				<button type="button">Tạo phòng</button>
+				<form action="/create-room" method="post">
+					<input type="text" name="room_id_create" placeholder="Id phòng" autocomplete="off">
+					<input type="number" name="bet_point" placeholder="Cược" autocomplete="off" min="0" max="100">
+					<button type="button">Tạo phòng</button>
+				</form>
 			</div>
 			<div class="join-room">
-				<input type="text" name="room_id_join" placeholder="Id phòng" autocomplete="off">
-				<button type="button">Vào phòng</button>
+				<form action="/join-room" method="post">
+					<input type="text" name="room_id_join" placeholder="Id phòng" autocomplete="off">
+					<button type="button">Vào phòng</button>
+				</form>
 			</div>
 		</div>
 		<div class="users-rank">

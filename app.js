@@ -4,11 +4,15 @@ var passport= require('passport');
 
 var passportFB =require('passport-facebook').Strategy;
 
-var session = require('express-session');
+var session = require('express-session')({
+	secret:'ldisfs',
+	resave: true,
+	saveUninitialized: true
+});
 
 var bodyParser=require('body-parser');
 
-var urlEndcodeParser=bodyParser.urlencoded({extended:true});
+var flash=require('connect-flash');
 
 require('dotenv').config();
 
@@ -20,17 +24,6 @@ var db=mongoose.connect(process.env.DB_URL,{ useNewUrlParser: true,useCreateInde
 
 });
 
-// const MongoClient = require(‘mongodb’).MongoClient;
-
-// const uri = process.env.DB_URL;
-// const client = new MongoClient(uri, { useNewUrlParser: true });
-// client.connect(err => {
-//   const collection = client.db("test").collection("devices");
-//   perform actions on the collection object
-//   client.close();
-// });
-
-
 var userModel=require('./models/user');
 
 var matchModel=require('./models/match');
@@ -38,13 +31,12 @@ var matchModel=require('./models/match');
 
 
 app.use(express.static("public"));
+app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 
-app.use(session({
-	secret:'ldisfs',
-	resave: true,
-	saveUninitialized: true
-}));
+app.use(session);
+
+app.use(flash());
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -70,16 +62,40 @@ function midAuth(req, res, next) {
 	// }
 }
 
+function sessionMiddleware(req,res, next){
+
+}
+io.use(function(socket, next){
+	session(socket.request, {}, next);
+});
+
+
+
+app.get('/create-session',function(req,res){
+	req.session.user={
+		id:'2324242',
+		name:'thonos',
+		avatar:'/3224',
+		point:'33535',
+	};
+	res.send('ok');
+})
+
+
 //listen connection
 io.on("connection",function(socket){
 
-	console.log(socket.id + " connected");
+
+	// socket.handshake.session.userdata = userdata;
+	// socket.handshake.session.save();
+
+	console.log(socket.request.session.user);
 
 	socket.on("disconnect",function(){
 
 
 
-		console.log(socket.id + " disconnected, isplay:" + socket.play);
+		// console.log(socket.id + " disconnected, isplay:" + socket.play);
 
 		if(socket.play){
 			socket.broadcast.to(socket.roomId).emit('You-win');
@@ -113,7 +129,7 @@ io.on("connection",function(socket){
 			socket.emit('Create-room-fail');
 		}
 		else{
-			socket.emit('Create-room-success',data);
+			socket.emit('Create-room-success',room_id);
 		}
 
 	});
@@ -136,16 +152,16 @@ io.on("connection",function(socket){
 		}
 	})
 
-	socket.on('User-join-room',function(){
+	socket.on('User-join-room',function(room){
 
-		socket.join('Caro');
-		socket.roomId='Caro';
+		socket.join(room.roomid);
+		socket.roomId=room.roomid;
 
 		socket.ready=false;
 		socket.play=false;
 
 
-		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
+		var playerinRoom =io.sockets.adapter.rooms[room.roomid];
 
 		if(playerinRoom.length === 3){
 
@@ -154,20 +170,35 @@ io.on("connection",function(socket){
 			socket.emit('Room-is-full');
 		}
 		else{
+			socket.betPoint=room.bet_point;
 
+			//first player
 			if(playerinRoom.length === 1){
+
 
 				socket.playfirst=true;
 
-				socket.emit('Init-player',{wait:true,username:'player1'});
+				socket.emit('Init-player',{wait:true,user:socket.request.session.user});
 			}
+
+			//second player
 			else{
 
 				socket.playfirst=false;
 
-				socket.emit('Init-player',{wait:false, username:'player2', opponent: 'player1'});
+				for(var id in playerinRoom.sockets){
 
-				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:'player2'});
+					if(id!==socket.id){
+						var sfirst = io.sockets.connected[id];
+						socket.emit('Init-player',{wait:false, user:socket.request.session.user, opponent: sfirst.request.session.user,roomInf:{
+							id:sfirst.roomId,
+							bet_point:sfirst.betPoint
+						}});
+						break;
+					}
+				}
+
+				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:socket.request.session.user});
 
 				io.to(socket.roomId).emit('Game-ready');
 
@@ -267,8 +298,48 @@ app.get('/',midAuth,function(req,res){
 	res.render('home');
 });
 
+app.post('/create-room',midAuth,function(req,res){
+
+	var params=req.body;
+
+	// console.log(params);
+
+	var bet_point=params.bet_point===''?0:parseInt(params.bet_point);
+
+	if(bet_point<0){
+		bet_point=0;
+	}
+	else if(bet_point>100){
+		bet_point=100;
+	}
+
+	req.flash('room',{id:params.room_id_create,betPoint:bet_point});
+	res.redirect('/play');
+
+});
+
+app.post('/join-room',midAuth,function(req,res){
+
+	var params=req.body;
+
+	req.flash('room',{id:params.room_id_join});
+	res.redirect('/play');
+
+});
+
 app.get('/play',midAuth,function(req,res){
+
+	var room=req.flash('room');
+	
+	if(room.length===0){
+		
+		return res.redirect('/');
+	}
+	// console.log(room[0].id);
+
 	res.render("play",{
+		roomId:room[0].id,
+		betPoint:room[0].betPoint,
 		user:req.user,
 	});
 

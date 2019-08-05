@@ -28,9 +28,8 @@
 			}
 		});
 
-		socket.on('Create-room-success',function(){
-
-			//create room
+		socket.on('Create-room-success',function(data){
+			$('.create-room form').submit();
 		});
 
 		socket.on('Create-room-fail',function(){
@@ -50,7 +49,7 @@
 		});
 
 		socket.on('Join-room-success',function(){
-
+			$('.join-room form').submit();
 			//Join room
 		});
 

@@ -65,9 +65,20 @@ body{
 .play-area .option p,.play-area input{
 	line-height: 25px;	
 }
-.roomId input{
-	border-radius: 5px;
-	border: 1px solid #d0d0d0;	
+.roomId p{
+	font-size: 14px;
+	color: #0f3c5f;
+}
+.roomId input[name="roomId"]{
+	border-radius: 3px;
+	border: 1px solid #d0d0d0;
+	width: 50px;	
+}
+.roomId input[name="bet_point"]{
+	border-radius: 3px;
+	border: 1px solid #598fa0;
+	width: 50px;
+	background: #55d5de;
 }
 .play-area .option button{
 	line-height: 25px;
@@ -527,22 +538,23 @@ input:focus, button:focus{
 .create-join-room{
 	display: flex;
 	flex-wrap: nowrap;
-	justify-content: space-around;
+	justify-content: space-between;
 	width: 50%;
 	margin: 0 auto;
 }
 .create-join-room > div{
-	width: 40%;
 	text-align: center;
 	padding: 20px 10px;
 	border-radius: 5px;
 }
 .create-room{
+	width: 50%;
 	background: #64e464;
 	border: 2px solid #94ad96;
 	box-shadow: 0 0 50px -1px #47823b inset;
 }
 .join-room{
+	width: 40%;
 	background: #72d6cf;
 	border: 2px solid #94a9ad;
 	box-shadow: 0 0 50px -1px #3b7482 inset;	
@@ -553,6 +565,9 @@ input:focus, button:focus{
 	border-radius: 3px;
 	border: 1px solid #3198ca;
 	line-height: 20px;
+}
+.create-room input[name="bet_point"]{
+	width: 60px;
 }
 .create-join-room button{
 	padding: 5px;

@@ -5,6 +5,8 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta name="app-url" content="<%= process.env.APP_URL %>" />
 	<meta name="app-port" content="<%= process.env.PORT %>">
+	<meta name="room-id" content="<%= roomId %>">
+	<meta name="bet-point" content="<%= betPoint %>">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 	<link rel="stylesheet" type="text/css" href="style.css">
 
@@ -49,7 +51,7 @@
 		</div>
 		<div class="play-area">
 			<div class="option">
-				<div class="roomId"><p>Id Phòng: <input type="text" name="roomId" disabled="disabled" value="Caro"></p></div>
+				<div class="roomId"><p>Id Phòng: <input type="text" name="roomId" disabled="disabled" value="<%= roomId %>"> Cược: <input type="text" name="bet_point" disabled="disabled" value="<%= betPoint %>"> </p></div>
 				<div class="request-draw"><button disabled="disabled">Cầu hòa</button></div>
 				<div class="request-lose"><button disabled="disabled">Xin thua</button></div>
 			</div>

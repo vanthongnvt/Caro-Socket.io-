@@ -4,21 +4,25 @@ var passport= require('passport');
 
 var passportFB =require('passport-facebook').Strategy;
 
-var session = require('express-session')({
-	secret:'ldisfs',
-	resave: true,
-	saveUninitialized: true
-});
+var passportSocketIo = require('passport.socketio');
+
+var session = require('express-session');
+
+var RedisStore = require('connect-redis')(session);
 
 var bodyParser=require('body-parser');
 
 var flash=require('connect-flash');
 
+var redis=require('redis');
+
 require('dotenv').config();
 
-var app = express();
+var fs=require('fs');
 
 var mongoose=require('mongoose');
+
+var app = express();
 
 var db=mongoose.connect(process.env.DB_URL,{ useNewUrlParser: true,useCreateIndex: true }, function (err) {
 
@@ -28,13 +32,27 @@ var userModel=require('./models/user');
 
 var matchModel=require('./models/match');
 
+var client    = redis.createClient({
+    port      : process.env.REDIS_PORT,               // replace with your port
+    host      : process.env.REDIS_HOST,        // replace with your hostanme or IP address
+    password  : process.env.REDIS_PASSWORD,    // replace with your passwor
+});
+
+var sessionStore=new RedisStore({
+	client: client
+})
 
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 
-app.use(session);
+app.use(session({
+	store: sessionStore,
+	secret: process.env.SECRET_KEY_BASE,
+	resave: true,
+	saveUninitialized: true
+}));
 
 app.use(flash());
 
@@ -44,65 +62,66 @@ app.use(passport.session());
 app.set("view engine","ejs");
 app.set("views","./views");
 
-var server=require("http").createServer(app);
+var server=require("https").createServer({
+	key: fs.readFileSync('server.key','utf-8'),
+	cert: fs.readFileSync('server.cert','utf-8')
+},app);
 
 server.listen(process.env.PORT);
 
 var io = require('socket.io')(server);
 
-// var fs=require('fs');
 
 function midAuth(req, res, next) {
-	next();
-	// if(req.isAuthenticated()){
-	// 	next();
-	// }
-	// else{
-	// 	res.redirect('/login');
-	// }
+	// next();
+	if(req.isAuthenticated()){
+		return next();
+	}
+	else{
+		return res.redirect('/login');
+	}
 }
 
-function sessionMiddleware(req,res, next){
+// function sessionMiddleware(req,res, next){
 
-}
-io.use(function(socket, next){
-	session(socket.request, {}, next);
-});
+// }
+// io.use(function(socket, next){
+// 	session(socket.request, {}, next);
+// });
+
+io.use(passportSocketIo.authorize({
+	store: sessionStore, 
+	cookieParser: require('cookie-parser'),
+	key: 'connect.sid',
+	secret: process.env.SECRET_KEY_BASE,
+	passport: passport,
+}));
 
 app.get('/create-session1',function(req,res){
 	userModel.findOne({id:'1'},function(err,user){
-		req.session.user = user;
+		req.user = user;
 		res.redirect('/');
 	});
 })
 
 app.get('/create-session2',function(req,res){
 	userModel.findOne({id:'2'},function(err,user){
-		req.session.user = user;
+		req.user = user;
 		res.redirect('/');
 	});
-});
-
-
-app.get('/update-win',function(req,res){
-	userModel.findOne({id:req.session.user.id},function(err,user){
-		var result=user.updateWhenWin(500);
-		console.log(result.nModified);
-		res.redirect('/');
-	})
 });
 
 //listen connection
 io.on("connection",function(socket){
 
 
-	// console.log(socket.request.session.user);
+	// console.log(socket.request.user);
 
 	socket.on("disconnect",function(){
 
 
 		var end=false;
-		var win_id;
+		var splayer_win;
 		// console.log(socket.id + " disconnected, isplay:" + socket.play);
 
 		if(socket.play){
@@ -119,7 +138,7 @@ io.on("connection",function(socket){
 			for(var id in playerinRoom.sockets){
 				var s = io.sockets.connected[id];
 				if(id!==socket.id){
-					win_id=s.request.session.user.id;
+					splayer_win=s;
 				}
 
 				s.playfirst = true;
@@ -130,28 +149,43 @@ io.on("connection",function(socket){
 			socket.broadcast.to(socket.roomId).emit('Opponent-leave-room');
 
 			if(end){
+				var user_win=splayer_win.request.user;
+				var user_lose=socket.request.user;
+
 				match = new matchModel({
-					player1_id: win_id,
-					player2_id: socket.request.session.user.id,
-					winer_id: win_id,
+					player1_id: user_win.id,
+					player2_id: user_lose.id,
+					winer_id: user_win.id,
 					bet_point: socket.betPoint,
 				});
 				match.save(function(err){});
+
+				user_win.updateWhenWin(socket.betPoint);
+				user_lose.updateWhenLose(socket.betPoint);
 			}
 		}
 		
 	});
 
 
-	socket.on('Create-room',function(room_id){
+	socket.on('Create-room',function(data){
 
-		var room =io.sockets.adapter.rooms[room_id];
-
+		var room =io.sockets.adapter.rooms[data.roomid];
+		var user_point=socket.request.user.point;
+		var bet_point=parseInt(data.bet_point);
+		if(bet_point<0){
+			bet_point=0;
+		}
+		if(user_point < bet_point){
+			socket.emit('Not-enough-point-to-create');
+			return;
+		}
 		if(typeof room !=='undefined'){
 			socket.emit('Create-room-fail');
+			return;
 		}
 		else{
-			socket.emit('Create-room-success',room_id);
+			socket.emit('Create-room-success',data.roomid);
 		}
 
 	});
@@ -166,7 +200,17 @@ io.on("connection",function(socket){
 				socket.emit('Room-is-full');
 			}
 			else{
-				socket.emit('Join-room-success');
+				var bet_point;
+				var user_point=socket.request.user.point;
+				for(var id in playerinRoom.sockets){
+					sfirst=io.sockets.connected[id];
+					bet_point=sfirst.bet_point;
+					if(bet_point > user_point){
+						socket.emit('Not-enough-point-to-join');
+						return;
+					}
+				}
+				socket.emit('Join-room-success',bet_point);
 			}
 		}
 		else{
@@ -175,6 +219,17 @@ io.on("connection",function(socket){
 	})
 
 	socket.on('User-join-room',function(room){
+
+		var user= socket.request.user;
+
+		var last_socketid=user.last_socket;
+		if(last_socketid!==null){
+			var slast = io.sockets.connected[last_socketid];
+			if(typeof slast!=='undefined'){
+				slast.emit('Force-disconnect');
+			}
+		}
+
 
 		socket.join(room.roomid);
 		socket.roomId=room.roomid;
@@ -192,6 +247,10 @@ io.on("connection",function(socket){
 			socket.emit('Room-is-full');
 		}
 		else{
+
+			user.last_socket=socket.id;
+			userModel.updateOne({id:user.id},{last_socket:socket.id},function(err,result){});
+
 			socket.betPoint=room.bet_point;
 
 			//first player
@@ -200,7 +259,7 @@ io.on("connection",function(socket){
 
 				socket.playfirst=true;
 
-				socket.emit('Init-player',{wait:true});
+				socket.emit('Init-player',{wait:true, point: socket.request.user.point});
 			}
 
 			//second player
@@ -212,7 +271,7 @@ io.on("connection",function(socket){
 
 					if(id!==socket.id){
 						var sfirst = io.sockets.connected[id];
-						socket.emit('Init-player',{wait:false,opponent: sfirst.request.session.user,roomInf:{
+						socket.emit('Init-player',{wait:false, point: socket.request.user.point ,opponent: sfirst.request.user,roomInf:{
 							id:sfirst.roomId,
 							bet_point:sfirst.betPoint
 						}});
@@ -220,7 +279,7 @@ io.on("connection",function(socket){
 					}
 				}
 
-				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:socket.request.session.user});
+				socket.broadcast.to(socket.roomId).emit('Opponent-join',{opponent:socket.request.user});
 
 				io.to(socket.roomId).emit('Game-ready');
 
@@ -275,11 +334,11 @@ io.on("connection",function(socket){
 	socket.on('User-win',function(data){
 
 		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
-		var id_lose;
+		var splayer_lose;
 		for(var id in playerinRoom.sockets){
 			var s = io.sockets.connected[id];
 			if(id!==socket.id){
-				id_lose=s.request.session.user.id;
+				splayer_lose=s;
 			}
 			s.play=false;
 			s.ready=false;
@@ -293,13 +352,19 @@ io.on("connection",function(socket){
 
 		io.to(socket.roomId).emit('Game-end',true);
 
+		var user_win=socket.request.user;
+		var user_lose=splayer_lose.request.user;
+
 		match = new matchModel({
-			player1_id: socket.request.session.user.id,
-			player2_id: id_lose,
-			winer_id: socket.request.session.user.id,
+			player1_id: user_win.id,
+			player2_id: user_lose.id,
+			winer_id: user_win.id,
 			bet_point: socket.betPoint,
 		});
 		match.save(function(err){});
+		
+		user_win.updateWhenWin(socket.betPoint);
+		user_lose.updateWhenLose(socket.betPoint);
 
 	});
 
@@ -313,7 +378,7 @@ io.on("connection",function(socket){
 		io.to(socket.roomId).emit('Game-end',false);
 
 		var playerinRoom =io.sockets.adapter.rooms[socket.roomId];
-		var player2;
+		var splayer2;
 
 		for(var id in playerinRoom.sockets){
 			var s = io.sockets.connected[id];
@@ -323,21 +388,27 @@ io.on("connection",function(socket){
 			s.play=false;
 			s.ready=false;
 		}
+		var user_1=socket.request.user;
+		var user_2=splayer2.request.user;
 
 		match = new matchModel({
-			player1_id: socket.request.session.user.id,
-			player2_id: player2.request.session.user.id,
+			player1_id: user_1.id,
+			player2_id: user_2.id,
 			winer_id: null,
 			bet_point: socket.betPoint,
 		});
 		match.save(function(err){});
+
+		user_1.updateWhenDraw(socket.betPoint);
+		user_2.updateWhenDraw(socket.betPoint);
+
 	})
 
 });
 
 app.get('/',midAuth,function(req,res){
 	userModel.find({},function(err,users){
-		res.render('home',{user:req.session.user,rank_list:users});
+		return res.render('home',{user:req.user,rank_list:users});
 	})
 });
 
@@ -356,13 +427,22 @@ app.post('/create-room',midAuth,function(req,res){
 		bet_point=100;
 	}
 
+	if(bet_point>req.user.point){
+		return res.redirect('/');
+	}
+
 	req.flash('room',{id:params.room_id_create,betPoint:bet_point});
 	res.redirect('/play');
 
 });
 
 app.post('/join-room',midAuth,function(req,res){
-
+	if(typeof req.body.bet_point === 'undefined'){
+		return res.redirect('/');
+	}
+	if(req.body.bet_point > req.user.point){
+		return res.redirect('/');
+	}
 	var params=req.body;
 
 	req.flash('room',{id:params.room_id_join});
@@ -383,7 +463,7 @@ app.get('/play',midAuth,function(req,res){
 	res.render("play",{
 		roomId:room[0].id,
 		betPoint:room[0].betPoint,
-		user:req.session.user,
+		user:req.user,
 	});
 
 });
@@ -403,8 +483,8 @@ app.get('/auth/fb',passport.authenticate('facebook',{
 passport.use('facebook',new passportFB({
 	clientID:process.env.FACEBOOK_CLIENT_ID,
 	clientSecret:process.env.FACEBOOK_CLIENT_SECRET,
-	callbackURL: process.env.APP_URL + "/auth/fb",
-	profileFields:['email','displayName','avatar']
+	callbackURL:"/auth/fb",
+	profileFields:['email','displayName','photos']
 },function(accessToken, refreshToken, profile, done){
 	var get_profile=profile._json;
 
@@ -418,7 +498,7 @@ passport.use('facebook',new passportFB({
 			id:get_profile.id,
 			name:get_profile.name,
 			email:get_profile.email,
-			avatar:get_profile.avatar,
+			avatar:profile.photos ? profile.photos[0].value : '/img/unknown-user-pic.jpg',
 			point:500
 		});
 

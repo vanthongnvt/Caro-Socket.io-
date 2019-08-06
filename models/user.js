@@ -35,6 +35,10 @@ var userSchema = mongoose.Schema({
 		type: Number,
 		default: 0
 	},
+	last_socket:{
+		type: String,
+		default: null
+	},
 	created: { 
 		type: Date,
 		default: Date.now
@@ -43,7 +47,7 @@ var userSchema = mongoose.Schema({
 
 userSchema.methods.updateWhenLose = function (bet_point){
 
-	var update_point=parseInt(user.point) - parseInt(bet_point);
+	var update_point=parseInt(this.point) - parseInt(bet_point);
 	if(update_point<0){
 		update_point=0;
 	}

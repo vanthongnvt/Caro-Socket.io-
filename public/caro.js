@@ -15,13 +15,13 @@
 
 	var roomid=$('meta[name="room-id"]').attr('content');
 
-	var bet_point=$('meta[name="bet-point"]').attr('content');
+	var bet_point=parseInt($('meta[name="bet-point"]').attr('content'));
 
 	var socket=io(app_url+':'+app_port);
 
 
 var putable=false; //ko dc danh
-
+var CUR_POINT;
 var SIZE = [15, 20]; // so o chieu ngang, chieu doc
 
 //SIZE[0]=row
@@ -119,6 +119,16 @@ function addCellEvent() {
 			if(w){
 				socket.emit('User-win',{r:_r,c:_c});
 				resultGameAlert(1);
+				var point2=$('.player-opponent .user-point').html();
+				$('.player-me .user-point').html(parseInt(CUR_POINT) + bet_point);
+				if(parseInt(point2) - bet_point < 0){
+					point2 = 0;
+				}
+				else{
+					point2=parseInt(point2) - bet_point;
+				}
+				$('.player-opponent .user-point').html(point2);
+
 			}
 			else{
 				if(COUNT==SIZE[0]*SIZE[1]){
@@ -417,12 +427,19 @@ $(document).ready(function(){
 		(window).location.href='/';
 	});
 
+	socket.on('Force-disconnect',function(){
+		alert('Bạn đã tạo một kết nối khác!');
+		(window).location.href='/';
+	});
+
 	socket.on('Init-player',function(data){
+
+		CUR_POINT=data.point;
 
 		if(typeof data.opponent !== 'undefined'){
 			$('.player-opponent .user-username').html(data.opponent.name);
-			$('.player-me .user-avatar').attr('src',data.opponent.avatar);
-			$('.player-me .user-point').html(data.opponent.point);
+			$('.player-opponent .user-avatar').attr('src',data.opponent.avatar);
+			$('.player-opponent .user-point').html(data.opponent.point);
 		}
 
 		//first palayer
@@ -450,7 +467,9 @@ $(document).ready(function(){
 	//for first player
 	socket.on('Opponent-join',function(data){
 
-		$('.player-opponent .user-username').html(data.opponent);
+		$('.player-opponent .user-username').html(data.opponent.name);
+		$('.player-opponent .user-point').html(data.opponent.point);
+		$('.player-opponent .user-avatar').attr('src',data.opponent.avatar);
 
 	});
 
@@ -529,6 +548,29 @@ $(document).ready(function(){
 		putable=false;
 		checkWin(data.r,data.c);
 		resultGameAlert(2);
+
+		var point2=$('.player-opponent .user-point').html();
+		$('.player-opponent .user-point').html(parseInt(point2) + bet_point);
+		if(CUR_POINT - bet_point < 0){
+			CUR_POINT = 0;
+			socket.disconnect(true);
+			swal({
+				title: "Bạn không đủ điểm để tiếp tục!",
+				icon: "warning",
+				buttons: ['Rời phòng'],
+				dangerMode: false,
+			})
+			.then((leaveRoom) => {
+				if (leaveRoom) {
+					(window).location.href='/';
+				}
+
+			});
+		}
+		else{
+			CUR_POINT=parseInt(CUR_POINT) - bet_point;
+		}
+		$('.player-me .user-point').html(CUR_POINT);
 	});
 
 	socket.on('Your-turn',function(data){
@@ -552,7 +594,15 @@ $(document).ready(function(){
 	//opponent leave
 	socket.on('You-win',function(){
 		resultGameAlert(1);
-
+		var point2=$('.player-opponent .user-point').html();
+		$('.player-me .user-point').html(parseInt(CUR_POINT) + bet_point);
+		if(parseInt(point2) - bet_point < 0){
+			point2 = 0;
+		}
+		else{
+			point2=parseInt(point2) - bet_point;
+		}
+		$('.player-opponent .user-point').html(point2);
 		setZeroCountDown();
 	});
 

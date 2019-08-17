@@ -40,7 +40,7 @@ var client    = redis.createClient({
 
 var sessionStore=new RedisStore({
 	client: client
-})
+});
 
 
 app.use(express.static("public"));
@@ -82,13 +82,6 @@ function midAuth(req, res, next) {
 	}
 }
 
-// function sessionMiddleware(req,res, next){
-
-// }
-// io.use(function(socket, next){
-// 	session(socket.request, {}, next);
-// });
-
 io.use(passportSocketIo.authorize({
 	store: sessionStore, 
 	cookieParser: require('cookie-parser'),
@@ -96,20 +89,6 @@ io.use(passportSocketIo.authorize({
 	secret: process.env.SECRET_KEY_BASE,
 	passport: passport,
 }));
-
-app.get('/create-session1',function(req,res){
-	userModel.findOne({id:'1'},function(err,user){
-		req.user = user;
-		res.redirect('/');
-	});
-})
-
-app.get('/create-session2',function(req,res){
-	userModel.findOne({id:'2'},function(err,user){
-		req.user = user;
-		res.redirect('/');
-	});
-});
 
 //listen connection
 io.on("connection",function(socket){
@@ -152,7 +131,7 @@ io.on("connection",function(socket){
 				var user_win=splayer_win.request.user;
 				var user_lose=socket.request.user;
 
-				match = new matchModel({
+				var match = new matchModel({
 					player1_id: user_win.id,
 					player2_id: user_lose.id,
 					winer_id: user_win.id,
@@ -355,7 +334,7 @@ io.on("connection",function(socket){
 		var user_win=socket.request.user;
 		var user_lose=splayer_lose.request.user;
 
-		match = new matchModel({
+		var match = new matchModel({
 			player1_id: user_win.id,
 			player2_id: user_lose.id,
 			winer_id: user_win.id,
@@ -391,7 +370,7 @@ io.on("connection",function(socket){
 		var user_1=socket.request.user;
 		var user_2=splayer2.request.user;
 
-		match = new matchModel({
+		var match = new matchModel({
 			player1_id: user_1.id,
 			player2_id: user_2.id,
 			winer_id: null,

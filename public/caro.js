@@ -17,7 +17,8 @@
 
 	var bet_point=parseInt($('meta[name="bet-point"]').attr('content'));
 
-	var socket=io(app_url+':'+app_port);
+	// var socket=io(app_url+':'+app_port);
+	var socket=io(app_url);
 
 
 var putable=false; //ko dc danh

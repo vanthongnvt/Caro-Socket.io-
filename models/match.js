@@ -6,7 +6,7 @@ var matchSchema = mongoose.Schema({
 		unique: true,
 		required: true
 	},
-	palyer2_id: {
+	player2_id: {
 		type: String,
 		required: true
 	},

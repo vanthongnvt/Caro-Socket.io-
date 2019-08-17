@@ -62,10 +62,12 @@ app.use(passport.session());
 app.set("view engine","ejs");
 app.set("views","./views");
 
-var server=require("https").createServer({
-	key: fs.readFileSync('server.key','utf-8'),
-	cert: fs.readFileSync('server.cert','utf-8')
-},app);
+var server=require("http").createServer(app);
+
+// var server=require("https").createServer({
+// 	key: fs.readFileSync('server.key','utf-8'),
+// 	cert: fs.readFileSync('server.cert','utf-8')
+// },app);
 
 server.listen(process.env.PORT);
 
